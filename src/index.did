@@ -1,0 +1,39 @@
+type Feedback = record {
+  id : text;
+  content : text;
+  createdAt : nat64;
+  author : principal;
+};
+type FeedbackPayload = record { content : text };
+type Product = record {
+  id : text;
+  attachmentURL : text;
+  name : text;
+  createdAt : nat64;
+  sold : float64;
+  description : text;
+  author : principal;
+  likes : float64;
+  updatedAt : opt nat64;
+  feedbacks : vec Feedback;
+  price : float64;
+};
+type ProductPayload = record {
+  attachmentURL : text;
+  name : text;
+  description : text;
+  price : float64;
+};
+type _AzleResult = variant { Ok : Product; Err : text };
+type _AzleResult_1 = variant { Ok : vec Product; Err : text };
+service : () -> {
+  addProduct : (ProductPayload) -> (_AzleResult);
+  addReview : (text, FeedbackPayload) -> (_AzleResult);
+  buyProduct : (text) -> (_AzleResult);
+  deleteProduct : (text) -> (_AzleResult);
+  getProduct : (text) -> (_AzleResult) query;
+  getProducts : () -> (_AzleResult_1) query;
+  likeProduct : (text) -> (_AzleResult);
+  updatePrice : (text, float64) -> (_AzleResult);
+  updateProduct : (text, ProductPayload) -> (_AzleResult);
+}
