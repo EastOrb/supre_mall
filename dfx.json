@@ -8,6 +8,14 @@
       "ts": "src/index.ts",
       "candid": "src/index.did",
       "wasm": ".azle/supremall/supremall.wasm.gz"
+    },
+    "token": {
+      "type": "custom",
+      "build": "npx azle token",
+      "root": "src",
+      "ts": "src/token.ts",
+      "candid": "src/token.did",
+      "wasm": ".azle/token/token.wasm.gz"
     }
   }
 }

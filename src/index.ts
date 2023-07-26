@@ -1,12 +1,35 @@
 // cannister code goes here
-import { $query, $update, Record, StableBTreeMap, Vec, match, Result, nat64, ic, Opt, Principal } from 'azle';
+import { $query, $update, Record, StableBTreeMap, Vec, match, Result, nat64, ic, Opt, Principal, serviceQuery, serviceUpdate, CallResult, Service, int8 } from 'azle';
 import { v4 as uuidv4 } from 'uuid';
+import {Address} from 'azle/canisters/ledger';
+
+
+export class Token extends Service {
+    @serviceUpdate
+    initializeSupply: ( name: string, originalAddress: string, ticker: string,totalSupply: nat64) => CallResult<boolean>;
+
+    @serviceUpdate
+    transfer: (from: string, to: string, amount: nat64) => CallResult<boolean>;
+
+    @serviceQuery
+    balance: (id: string) => CallResult<nat64>;
+
+    @serviceQuery
+    ticker: () => CallResult<string>;
+
+    @serviceQuery
+    name: () => CallResult<string>;
+
+    @serviceQuery
+    totalSupply: () => CallResult<nat64>;
+}
+
 
 type Product = Record<{
     id: string;
     name: string;
     description: string;
-    price: number;
+    price: nat64;
     sold: number;
     attachmentURL: string;
     likes: number;
@@ -19,7 +42,7 @@ type Product = Record<{
 type ProductPayload = Record<{
     name: string;
     description: string;
-    price: number;
+    price: nat64;
     attachmentURL: string;
 }>
 type Feedback = Record<{
@@ -29,15 +52,80 @@ type Feedback = Record<{
     createdAt: nat64;
   }>;
 
-  type FeedbackPayload = Record<{
+type FeedbackPayload = Record<{
     content: string;
-  }>;
+}>;
+export type initPayload = Record<{
+    // network: local:0 or mainnet:1
+    network: int8
+}>
+
+
+
+
+const icpCanisterAddress: Address = ic.caller().toString()
+
+const tokenCanister = new Token(
+    // input your token canister address
+    Principal.fromText("bd3sg-teaaa-aaaaa-qaaba-cai")
+);
+
+// set up with wallet of local user 
+const owner: Principal = ic.caller();
+
+let initialized: boolean;
+let mallBal: nat64;
+let network: int8;
+
 
 const productStorage = new StableBTreeMap<string, Product>(0, 44, 1024);
+
+
+// initialization function
+$update
+export async function initializeToken(payload: initPayload):  Promise<Result<string, string>>{
+    if(initialized){
+        ic.trap("Canister already initialized")
+    }
+
+    if (payload.network == 0){
+        //set up dummyTokens
+       network = 0;
+       await tokenCanister.initializeSupply('SupreMallToken', icpCanisterAddress, 'SMT', 1_000_000_000_000n).call();
+    }else{
+       network = 1;
+    }
+
+    initialized = true;
+    mallBal = 0n;
+    return Result.Ok<string, string>("Canister Initialized");
+}
+
 
 $query;
 export function getProducts(): Result<Vec<Product>, string> {
     return Result.Ok(productStorage.values());
+}
+
+$query;
+export function wallet(): string {
+    return ic.caller().toString();
+}
+
+$query;
+export function mallBalance(): nat64 {
+    return mallBal;
+}
+
+$query;
+export function mallOwner(): string {
+    return owner.toString();
+}
+
+$query;
+export async function walletBalanceLocal(): Promise<Result<nat64, string>> {
+    let address = ic.caller().toString();
+    return await tokenCanister.balance(address).call();
 }
 
 $query;
@@ -83,7 +171,7 @@ export function updateProduct(id: string, payload: ProductPayload): Result<Produ
 }
 
 $update;
-export function updatePrice(id: string, price: number): Result<Product, string> {
+export function updatePrice(id: string, price: nat64): Result<Product, string> {
     return match(productStorage.get(id), {
         Some: (product) => {
             if (product.author.toString() !== ic.caller().toString()) {
@@ -128,12 +216,21 @@ export function likeProduct(
 }
 
 $update;
-export function buyProduct(
+export async function buyProduct(
     productId: string
-    ): Result<Product, string> {
+    ): Promise<Result<Product, string>>{
+    // check if initialized
+    if(!initialized){
+        ic.trap("Canister not yet initialized")
+    }
     return match(productStorage.get(productId), {
-        Some: (product) => {
+        Some: async (product) => {
+            let status = (await tokenCanister.transfer(ic.caller().toString(), icpCanisterAddress, product.price).call()).Ok;   
+        if(!status){
+            ic.trap("Failed to purchase product")
+        }
             const updatedproduct: Product = {...product, sold: product.sold + 1};
+            mallBal = mallBal + product.price;
             productStorage.insert(product.id, updatedproduct);
             return Result.Ok<Product, string>(updatedproduct);
         },
@@ -147,6 +244,17 @@ export function deleteProduct(id: string): Result<Product, string> {
         Some: (deletedProduct) => Result.Ok<Product, string>(deletedProduct),
         None: () => Result.Err<Product, string>(`couldn't delete a Product with id=${id}. Product not found.`)
     });
+}
+
+$update;
+export async function getFaucetTokens(): Promise<Result<boolean, string>>{
+    const caller = ic.caller();
+    const returnVal = (await tokenCanister.balance(caller.toString()).call()).Ok;
+    const balance = returnVal? returnVal : 0n;
+    if(balance > 0n){
+        ic.trap("To prevent faucet drain, please utilize your existing tokens");
+    }
+    return await tokenCanister.transfer(icpCanisterAddress, caller.toString(), 100n).call();   
 }
 
 // a workaround to make uuid package work with Azle

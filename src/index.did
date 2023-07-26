@@ -5,6 +5,9 @@ type Feedback = record {
   author : principal;
 };
 type FeedbackPayload = record { content : text };
+type ManualReply = variant { Ok : bool; Err : text };
+type ManualReply_1 = variant { Ok : text; Err : text };
+type ManualReply_2 = variant { Ok : nat64; Err : text };
 type Product = record {
   id : text;
   attachmentURL : text;
@@ -16,24 +19,31 @@ type Product = record {
   likes : float64;
   updatedAt : opt nat64;
   feedbacks : vec Feedback;
-  price : float64;
+  price : nat64;
 };
 type ProductPayload = record {
   attachmentURL : text;
   name : text;
   description : text;
-  price : float64;
+  price : nat64;
 };
 type _AzleResult = variant { Ok : Product; Err : text };
 type _AzleResult_1 = variant { Ok : vec Product; Err : text };
+type initPayload = record { network : int8 };
 service : () -> {
   addProduct : (ProductPayload) -> (_AzleResult);
   addReview : (text, FeedbackPayload) -> (_AzleResult);
   buyProduct : (text) -> (_AzleResult);
   deleteProduct : (text) -> (_AzleResult);
+  getFaucetTokens : () -> (ManualReply);
   getProduct : (text) -> (_AzleResult) query;
   getProducts : () -> (_AzleResult_1) query;
+  initializeToken : (initPayload) -> (ManualReply_1);
   likeProduct : (text) -> (_AzleResult);
-  updatePrice : (text, float64) -> (_AzleResult);
+  mallBalance : () -> (nat64) query;
+  mallOwner : () -> (text) query;
+  updatePrice : (text, nat64) -> (_AzleResult);
   updateProduct : (text, ProductPayload) -> (_AzleResult);
+  wallet : () -> (text) query;
+  walletBalanceLocal : () -> (ManualReply_2) query;
 }
