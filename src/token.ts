@@ -1,11 +1,11 @@
 import { nat64, $query, $update, ic } from 'azle';
 
-export type Account = {
+type Account = {
     address: string;
     balance: nat64;
 };
 
-export type State = {
+type State = {
     accounts: {
         [key: string]: Account;
     };
@@ -13,12 +13,15 @@ export type State = {
     ticker: string;
     totalSupply: nat64;
 };
+
 let state: State = {
     accounts: {},
-    name: '',
-    ticker: '',
-    totalSupply: 0n
+    name: "",
+    ticker: "",
+    totalSupply: 0n,
 };
+
+// Update functions
 
 $update;
 export function initializeSupply(
@@ -27,17 +30,19 @@ export function initializeSupply(
     ticker: string,
     totalSupply: nat64
 ): boolean {
+    // Check for valid input here (e.g., valid name, ticker, and totalSupply)
+
     state = {
         ...state,
         accounts: {
             [originalAddress]: {
                 address: originalAddress,
-                balance: totalSupply
-            }
+                balance: totalSupply,
+            },
         },
         name,
         ticker,
-        totalSupply
+        totalSupply,
     };
 
     return true;
@@ -49,30 +54,29 @@ export function transfer(
     toAddress: string,
     amount: nat64
 ): boolean {
-    if (state.accounts[toAddress] === undefined) {
-        state.accounts[toAddress] = {
-            address: toAddress,
-            balance: 0n
-        };
+    // Check for valid input here (e.g., valid addresses, non-negative amount, etc.)
+
+    const fromAccount = state.accounts[fromAddress] ?? {
+        address: fromAddress,
+        balance: 0n,
+    };
+    const toAccount = state.accounts[toAddress] ?? {
+        address: toAddress,
+        balance: 0n,
+    };
+
+    if (fromAccount.balance < amount) {
+        ic.trap("Insufficient amount");
     }
 
-    if (state.accounts[fromAddress] === undefined) {
-        state.accounts[fromAddress] = {
-            address: fromAddress,
-            balance: 0n
-        };
-    }
-    const fromBalance = state.accounts[fromAddress].balance;
-
-    if (fromBalance < amount) {
-        ic.trap("Insufficient amount")
-    }
-
-    state.accounts[fromAddress].balance -= amount;
-    state.accounts[toAddress].balance += amount;
+    // Perform the transfer using BigInt arithmetic methods
+    state.accounts[fromAddress].balance = fromAccount.balance - amount;
+    state.accounts[toAddress].balance = toAccount.balance + amount;
 
     return true;
 }
+
+// Query functions
 
 $query;
 export function balance(address: string): nat64 {
@@ -80,16 +84,16 @@ export function balance(address: string): nat64 {
 }
 
 $query;
-export function ticker(): string {
+export function getTicker(): string {
     return state.ticker;
 }
 
 $query;
-export function name(): string {
+export function getName(): string {
     return state.name;
 }
 
 $query;
-export function totalSupply(): nat64 {
+export function getTotalSupply(): nat64 {
     return state.totalSupply;
 }
