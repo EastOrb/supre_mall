@@ -82,7 +82,7 @@ const productStorage = new StableBTreeMap<string, Product>(0, 44, 1024);
 
 
 // initialization function
-$update
+$update;
 export async function initializeToken(payload: initPayload):  Promise<Result<string, string>>{
     if(initialized){
         ic.trap("Canister already initialized")
@@ -255,13 +255,11 @@ export function deleteProduct(id: string): Result<Product, string> {
 // function to get dummy tokens to your wallet
 $update;
 export async function getFaucetTokens(): Promise<Result<boolean, string>>{
+    // if(!initialized){
+    //     await initializeToken({network: 0});
+    // }
     const caller = ic.caller();
-    const returnVal = (await tokenCanister.balance(caller.toString()).call()).Ok;
-    const balance = returnVal? returnVal : 0n;
-    if(balance > 0n){
-        ic.trap("To prevent faucet drain, please utilize your existing tokens");
-    }
-    return await tokenCanister.transfer(icpCanisterAddress, caller.toString(), 100n).call();   
+    return await tokenCanister.transfer(icpCanisterAddress, caller.toString(), 1000n).call();   
 }
 
 // a workaround to make uuid package work with Azle
