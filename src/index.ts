@@ -102,16 +102,13 @@ export async function initializeToken(payload: initPayload):  Promise<Result<str
 }
 
 
-$query;
-export function getProducts(): Result<Vec<Product>, string> {
-    return Result.Ok(productStorage.values());
-}
-
+// function to get your wallet address
 $query;
 export function wallet(): string {
     return ic.caller().toString();
 }
 
+// function to get the mall's balance
 $query;
 export function mallBalance(): nat64 {
     return mallBal;
@@ -122,12 +119,20 @@ export function mallOwner(): string {
     return owner.toString();
 }
 
+// function to get your account balance
 $query;
 export async function walletBalanceLocal(): Promise<Result<nat64, string>> {
     let address = ic.caller().toString();
     return await tokenCanister.balance(address).call();
 }
 
+//function to get all products
+$query;
+export function getProducts(): Result<Vec<Product>, string> {
+    return Result.Ok(productStorage.values());
+}
+
+// function to get product by its id
 $query;
 export function getProduct(id: string): Result<Product, string> {
     return match(productStorage.get(id), {
@@ -136,6 +141,7 @@ export function getProduct(id: string): Result<Product, string> {
     });
 }
 
+// function to add product
 $update;
 export function addProduct(payload: ProductPayload): Result<Product, string> {
     const product: Product = {
@@ -246,6 +252,7 @@ export function deleteProduct(id: string): Result<Product, string> {
     });
 }
 
+// function to get dummy tokens to your wallet
 $update;
 export async function getFaucetTokens(): Promise<Result<boolean, string>>{
     const caller = ic.caller();
