@@ -54,24 +54,27 @@ export function transfer(
     toAddress: string,
     amount: nat64
 ): boolean {
-    // Check for valid input here (e.g., valid addresses, non-negative amount, etc.)
-
-    const fromAccount = state.accounts[fromAddress] ?? {
-        address: fromAddress,
-        balance: 0n,
-    };
-    const toAccount = state.accounts[toAddress] ?? {
-        address: toAddress,
-        balance: 0n,
-    };
-
-    if (fromAccount.balance < amount) {
-        ic.trap("Insufficient amount");
+    if (state.accounts[toAddress] === undefined) {
+        state.accounts[toAddress] = {
+            address: toAddress,
+            balance: 0n
+        };
     }
 
-    // Perform the transfer using BigInt arithmetic methods
-    state.accounts[fromAddress].balance = fromAccount.balance - amount;
-    state.accounts[toAddress].balance = toAccount.balance + amount;
+    if (state.accounts[fromAddress] === undefined) {
+        state.accounts[fromAddress] = {
+            address: fromAddress,
+            balance: 0n
+        };
+    }
+    const fromBalance = state.accounts[fromAddress].balance;
+
+    if (fromBalance < amount) {
+        ic.trap("Insufficient amount")
+    }
+
+    state.accounts[fromAddress].balance -= amount;
+    state.accounts[toAddress].balance += amount;
 
     return true;
 }
@@ -80,7 +83,7 @@ export function transfer(
 
 $query;
 export function balance(address: string): nat64 {
-    return state.accounts[address]?.balance ?? 0n;
+    return state.accounts[address].balance;
 }
 
 $query;
