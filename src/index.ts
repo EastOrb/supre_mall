@@ -79,6 +79,7 @@ let network: int8;
 
 
 const productStorage = new StableBTreeMap<string, Product>(0, 44, 1024);
+mallBal = 0n;
 
 
 // initialization function

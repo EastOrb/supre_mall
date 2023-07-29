@@ -83,7 +83,7 @@ export function transfer(
 
 $query;
 export function balance(address: string): nat64 {
-    return state.accounts[address].balance;
+    return state.accounts[address]?.balance ?? 0n;
 }
 
 $query;
